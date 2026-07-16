@@ -135,10 +135,16 @@ tr:last-child td { border-bottom: none; }
 .rank-cell { font-family: 'IBM Plex Serif', serif; font-weight: 600; color: var(--brass-light); width: 34px; }
 .name-cell { font-weight: 500; color: var(--parchment); }
 .score-cell { font-family: 'IBM Plex Serif', serif; font-weight: 600; text-align: right; white-space: nowrap; }
+#standings-table .score-cell { font-size: 22px; }
+#standings-table td { padding: 14px 10px; }
+#standings-table .rank-cell { font-size: 16px; }
 .pos-under { color: var(--good); }
 .pos-over { color: #d18b7a; }
 .pos-even { color: var(--parchment-dim); }
 .picks-line { font-size: 12px; color: var(--parchment-dim); margin-top: 3px; line-height: 1.5; }
+.picks-line-trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
+.tb-tag { font-size: 11px; color: var(--brass-light); font-weight: 600; margin-left: 8px; letter-spacing: 0.3px; }
+.name-cell { display: flex; align-items: baseline; gap: 2px; }
 .pick-dropped { text-decoration: line-through; opacity: 0.45; }
 .pick-count-badge {
   display: inline-block; margin-left: 6px;
@@ -486,7 +492,7 @@ function StandingsTab({ loading, standings, onRefresh }) {
       ) : standings.length === 0 ? (
         <div className="empty-state">No participants yet — add entries from the Admin tab.</div>
       ) : (
-        <table>
+        <table id="standings-table">
           <thead>
             <tr><th>#</th><th>Participant</th><th style={{ textAlign: "right" }}>Total</th></tr>
           </thead>
@@ -495,24 +501,12 @@ function StandingsTab({ loading, standings, onRefresh }) {
               <tr key={s.name + i}>
                 <td className="rank-cell">{i + 1}</td>
                 <td>
-                  <div className="name-cell">{s.name}</div>
-                  <div className="picks-line">
-                    {s.kept.map((k, idx) => (
-                      <span key={idx}>
-                        {k.name} ({toParDisplay(k.score)}){k.penalty && <span className="penalty-tag">MC</span>}
-                        {idx < s.kept.length - 1 ? ", " : ""}
-                      </span>
-                    ))}
-                    {s.dropped.length > 0 && (
-                      <span className="pick-dropped">
-                        {" · "}{s.dropped.map(d => `${d.name} (${toParDisplay(d.score)})`).join(", ")}
-                      </span>
-                    )}
-                    {s.missing.length > 0 && (
-                      <span style={{ color: "#d18b7a" }}>
-                        {" · unmatched: "}{s.missing.map(m => m.name).join(", ")}
-                      </span>
-                    )}
+                  <div className="name-cell">
+                    {s.name}
+                    {s.tiebreaker && <span className="tb-tag">TB: {s.tiebreaker}</span>}
+                  </div>
+                  <div className="picks-line picks-line-trunc" title={(s.picks || []).join(", ")}>
+                    {(s.picks || []).join(", ")}
                   </div>
                 </td>
                 <td className={"score-cell " + toParClass(s.total)}>{toParDisplay(s.total)}</td>
@@ -630,6 +624,36 @@ function AdminTab({ participants, setParticipants, onRefresh }) {
     }
   };
 
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editValue, setEditValue] = useState("");
+
+  const startEdit = (idx, currentName) => {
+    setEditingIdx(idx);
+    setEditValue(currentName);
+  };
+
+  const cancelEdit = () => {
+    setEditingIdx(null);
+    setEditValue("");
+  };
+
+  const saveEdit = async (idx) => {
+    const trimmed = editValue.trim();
+    if (!trimmed) { cancelEdit(); return; }
+    const updated = participants.map((p, i) => i === idx ? { ...p, name: trimmed } : p);
+    setParticipants(updated);
+    setEditingIdx(null);
+    setSaving(true);
+    try {
+      await saveParticipants(updated);
+      setStatus({ type: "ok", text: `Renamed to "${trimmed}" and saved.` });
+    } catch (e) {
+      setStatus({ type: "err", text: "Renamed locally but failed to sync: " + e.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!authed) {
     return (
       <div className="card admin-gate">
@@ -690,10 +714,36 @@ function AdminTab({ participants, setParticipants, onRefresh }) {
           <tbody>
             {participants.map((p, i) => (
               <tr key={p.name + i}>
-                <td className="name-cell">{p.name}</td>
+                <td className="name-cell">
+                  {editingIdx === i ? (
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input
+                        className="field-input"
+                        style={{ margin: 0, padding: "5px 8px", fontSize: 13.5, width: 160 }}
+                        value={editValue}
+                        autoFocus
+                        onChange={e => setEditValue(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") saveEdit(i);
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                      />
+                      <button className="small-x" style={{ color: "var(--good)" }} onClick={() => saveEdit(i)} title="Save">✓</button>
+                      <button className="small-x" onClick={cancelEdit} title="Cancel">✕</button>
+                    </div>
+                  ) : (
+                    <span
+                      onClick={() => startEdit(i, p.name)}
+                      style={{ cursor: "pointer", borderBottom: "1px dashed var(--parchment-faint)" }}
+                      title="Click to edit name"
+                    >
+                      {p.name}
+                    </span>
+                  )}
+                </td>
                 <td style={{ fontSize: 12.5, color: "var(--parchment-dim)" }}>{(p.picks || []).join(", ")}</td>
                 <td>{p.tiebreaker || "-"}</td>
-                <td><button className="small-x" onClick={() => removeParticipant(p.name)}>✕</button></td>
+                <td><button className="small-x" onClick={() => removeParticipant(p.name)} title="Delete">✕</button></td>
               </tr>
             ))}
           </tbody>
