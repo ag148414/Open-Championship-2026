@@ -737,6 +737,43 @@ function AdminTab({ participants, setParticipants, onRefresh }) {
     }
   };
 
+  const [editingPick, setEditingPick] = useState(null); // { pIdx, pickIdx }
+  const [editPickValue, setEditPickValue] = useState("");
+
+  const startPickEdit = (pIdx, pickIdx, currentName) => {
+    setEditingPick({ pIdx, pickIdx });
+    setEditPickValue(currentName);
+  };
+
+  const cancelPickEdit = () => {
+    setEditingPick(null);
+    setEditPickValue("");
+  };
+
+  const savePickEdit = async () => {
+    if (!editingPick) return;
+    const trimmed = editPickValue.trim();
+    if (!trimmed) { cancelPickEdit(); return; }
+    const { pIdx, pickIdx } = editingPick;
+    const updated = participants.map((p, i) => {
+      if (i !== pIdx) return p;
+      const newPicks = [...(p.picks || [])];
+      newPicks[pickIdx] = trimmed;
+      return { ...p, picks: newPicks };
+    });
+    setParticipants(updated);
+    setEditingPick(null);
+    setSaving(true);
+    try {
+      await saveParticipants(updated);
+      setStatus({ type: "ok", text: `Updated pick to "${trimmed}" and saved.` });
+    } catch (e) {
+      setStatus({ type: "err", text: "Updated locally but failed to sync: " + e.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!authed) {
     return (
       <div className="card admin-gate">
@@ -824,7 +861,39 @@ function AdminTab({ participants, setParticipants, onRefresh }) {
                     </span>
                   )}
                 </td>
-                <td style={{ fontSize: 12.5, color: "var(--parchment-dim)" }}>{(p.picks || []).join(", ")}</td>
+                <td style={{ fontSize: 12.5, color: "var(--parchment-dim)" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {(p.picks || []).map((pick, pickIdx) => {
+                      const isEditingThis = editingPick && editingPick.pIdx === i && editingPick.pickIdx === pickIdx;
+                      return isEditingThis ? (
+                        <span key={pickIdx} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                          <input
+                            className="field-input"
+                            style={{ margin: 0, padding: "3px 6px", fontSize: 12.5, width: 130 }}
+                            value={editPickValue}
+                            autoFocus
+                            onChange={e => setEditPickValue(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") savePickEdit();
+                              if (e.key === "Escape") cancelPickEdit();
+                            }}
+                          />
+                          <button className="small-x" style={{ color: "var(--good)" }} onClick={savePickEdit} title="Save">✓</button>
+                          <button className="small-x" onClick={cancelPickEdit} title="Cancel">✕</button>
+                        </span>
+                      ) : (
+                        <span
+                          key={pickIdx}
+                          onClick={() => startPickEdit(i, pickIdx, pick)}
+                          style={{ cursor: "pointer", borderBottom: "1px dashed var(--parchment-faint)" }}
+                          title="Click to edit this pick"
+                        >
+                          {pick}{pickIdx < (p.picks || []).length - 1 ? "," : ""}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </td>
                 <td>{p.tiebreaker || "-"}</td>
                 <td><button className="small-x" onClick={() => removeParticipant(p.name)} title="Delete">✕</button></td>
               </tr>
