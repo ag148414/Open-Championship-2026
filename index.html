@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Open Pool 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --slate-deep: #1c2b30;
+  --slate-mid: #263a40;
+  --slate-line: rgba(237,230,214,0.14);
+  --brass: #b8933f;
+  --brass-light: #d9bc74;
+  --parchment: #ede6d6;
+  --parchment-dim: rgba(237,230,214,0.55);
+  --parchment-faint: rgba(237,230,214,0.32);
+  --heather: #8a76a0;
+  --sea: #5c7a80;
+  --penalty: #a8503f;
+  --good: #6f9070;
+}
+body {
+  background: var(--slate-deep);
+  color: var(--parchment);
+  font-family: 'IBM Plex Sans', sans-serif;
+  min-height: 100vh;
+  font-weight: 300;
+}
+.app { max-width: 1080px; margin: 0 auto; padding: 0 18px 70px; }
+
+/* ---------- Header ---------- */
+.header {
+  position: relative;
+  text-align: center;
+  padding: 44px 0 30px;
+  margin-bottom: 30px;
+  overflow: hidden;
+}
+.header::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 46px;
+  background-image:
+    linear-gradient(transparent, transparent),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 60' preserveAspectRatio='none'><path d='M0,45 C60,20 120,50 180,30 C240,10 300,45 360,25 C420,5 480,40 540,22 C600,5 660,42 720,28 C760,20 780,35 800,25 L800,60 L0,60 Z' fill='rgba(184,147,63,0.16)'/></svg>");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+.eyebrow {
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 12px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--brass-light);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.header h1 {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: clamp(28px, 5.2vw, 48px);
+  font-weight: 700;
+  color: var(--parchment);
+  letter-spacing: 0.5px;
+}
+.header h1 em { font-style: normal; color: var(--brass-light); }
+.header-sub {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--parchment-dim);
+  letter-spacing: 0.5px;
+}
+.header-rule {
+  width: 64px; height: 2px; margin: 16px auto 0;
+  background: var(--brass);
+}
+.last-updated { font-size: 11px; color: var(--parchment-faint); margin-top: 8px; }
+
+/* ---------- Tabs ---------- */
+.tabs {
+  display: flex; justify-content: center; gap: 6px;
+  border-bottom: 1px solid var(--slate-line);
+  margin-bottom: 26px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--parchment-dim);
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase;
+  font-weight: 600;
+  padding: 12px 18px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover { color: var(--parchment); }
+.tab-btn.active { color: var(--brass-light); border-bottom-color: var(--brass); }
+
+/* ---------- Cards / tables ---------- */
+.card {
+  background: var(--slate-mid);
+  border: 1px solid var(--slate-line);
+  border-radius: 6px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+.card h2 {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--parchment);
+}
+.card-note { font-size: 12.5px; color: var(--parchment-dim); margin-bottom: 16px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th {
+  text-align: left;
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--brass-light);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--slate-line);
+  font-weight: 600;
+}
+td { padding: 9px 10px; border-bottom: 1px solid var(--slate-line); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+.rank-cell { font-family: 'IBM Plex Serif', serif; font-weight: 600; color: var(--brass-light); width: 34px; }
+.name-cell { font-weight: 500; color: var(--parchment); }
+.score-cell { font-family: 'IBM Plex Serif', serif; font-weight: 600; text-align: right; white-space: nowrap; }
+.pos-under { color: var(--good); }
+.pos-over { color: #d18b7a; }
+.pos-even { color: var(--parchment-dim); }
+.picks-line { font-size: 12px; color: var(--parchment-dim); margin-top: 3px; line-height: 1.5; }
+.pick-dropped { text-decoration: line-through; opacity: 0.45; }
+.pick-count-badge {
+  display: inline-block; margin-left: 6px;
+  font-size: 10.5px; font-weight: 600;
+  color: var(--slate-deep); background: var(--brass-light);
+  border-radius: 10px; padding: 1px 7px;
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+}
+.penalty-tag {
+  display: inline-block; margin-left: 6px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.5px;
+  color: var(--penalty); border: 1px solid var(--penalty);
+  border-radius: 3px; padding: 0px 5px;
+}
+
+/* ---------- Admin ---------- */
+.admin-gate { max-width: 340px; margin: 40px auto; text-align: center; }
+.admin-gate input, .field-input {
+  width: 100%; padding: 11px 13px; border-radius: 4px;
+  border: 1px solid var(--slate-line);
+  background: var(--slate-deep); color: var(--parchment);
+  font-size: 14px; font-family: 'IBM Plex Sans', sans-serif;
+  margin-bottom: 10px;
+}
+.btn {
+  background: var(--brass); color: var(--slate-deep);
+  border: none; border-radius: 4px; cursor: pointer;
+  padding: 10px 18px; font-weight: 600; font-size: 13.5px;
+  letter-spacing: 0.5px;
+  font-family: 'IBM Plex Sans Condensed', sans-serif;
+  text-transform: uppercase;
+  transition: background 0.15s;
+}
+.btn:hover { background: var(--brass-light); }
+.btn.secondary {
+  background: transparent; color: var(--parchment-dim);
+  border: 1px solid var(--slate-line);
+}
+.btn.secondary:hover { color: var(--parchment); border-color: var(--parchment-dim); }
+.btn.danger { background: var(--penalty); color: var(--parchment); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.dropzone {
+  border: 1.5px dashed var(--brass);
+  border-radius: 6px;
+  padding: 34px 20px;
+  text-align: center;
+  color: var(--parchment-dim);
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  margin-bottom: 16px;
+}
+.dropzone.drag { background: rgba(184,147,63,0.08); border-color: var(--brass-light); }
+.dropzone strong { color: var(--brass-light); }
+
+.admin-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.status-msg { font-size: 13px; padding: 10px 12px; border-radius: 4px; margin-bottom: 14px; }
+.status-msg.ok { background: rgba(111,144,112,0.15); color: var(--good); border: 1px solid rgba(111,144,112,0.35); }
+.status-msg.err { background: rgba(168,80,63,0.15); color: #d18b7a; border: 1px solid rgba(168,80,63,0.35); }
+.small-x { background: none; border: none; color: var(--penalty); cursor: pointer; font-size: 15px; padding: 0 4px; }
+.empty-state { text-align: center; padding: 30px 10px; color: var(--parchment-dim); font-size: 13.5px; }
+.loading-spinner { text-align: center; padding: 40px; color: var(--parchment-dim); font-size: 13.5px; }
+@media (max-width: 640px) {
+  th, td { padding: 7px 6px; font-size: 12.5px; }
+  .card { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+/* ================= CONFIG ================= */
+const JSONBIN_ID = "6a58f2f3f5f4af5e299812a6";
+const JSONBIN_API_KEY = "$2a$10$9jGdOpcZRVyKMT8cewi9SOLgSsRY2mEAC9u3zJfAAPslDwu4tOkGG";
+const JSONBIN_BASE = "https://api.jsonbin.io/v3/b/" + JSONBIN_ID;
+const ADMIN_PASSWORD = "openchamp2026";
+const ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard";
+const PAR = 70;
+const NUM_PICKS = 8;
+const NUM_KEEP = 6;
+const MC_PENALTY_TO_PAR = 8; // +8 to par per unplayed round once the field has finished that round
+
+/* ================= HELPERS ================= */
+function normalizeName(n) {
+  return (n || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function lastFirstKey(n) {
+  const parts = normalizeName(n).split(" ").filter(Boolean);
+  if (parts.length === 0) return "";
+  const last = parts[parts.length - 1];
+  const firstInitial = parts[0][0] || "";
+  return last + "|" + firstInitial;
+}
+function toParDisplay(v) {
+  if (v === 0 || v === "E") return "E";
+  if (v > 0) return "+" + v;
+  return String(v);
+}
+function toParClass(v) {
+  if (v === 0) return "pos-even";
+  return v > 0 ? "pos-over" : "pos-under";
+}
+
+/* ================= ESPN PARSING ================= */
+// Builds, per competitor: { name, espnPos, thru, cumulativeToPar, rounds: [{played, holes, toPar}] }
+function parseEspnField(scoreboard) {
+  let event = null;
+  const events = scoreboard.events || [];
+  event = events.find(e =>
+    (e.name && e.name.toLowerCase().includes("open championship")) ||
+    (e.shortName && e.shortName.toLowerCase().includes("the open"))
+  ) || events[0];
+  if (!event) return { field: [], eventName: null };
+
+  const comp = event.competitions && event.competitions[0];
+  const competitors = (comp && comp.competitors) || [];
+
+  const field = competitors.map(c => {
+    const name = c.athlete ? c.athlete.displayName : (c.displayName || "Unknown");
+    const espnPos = c.status && c.status.position ? c.status.position.displayName : (c.order != null ? String(c.order + 1) : "-");
+    const cumulativeToPar = c.score !== undefined ? (c.score === "E" ? 0 : parseInt(c.score, 10) || 0) : 0;
+
+    const roundsByPeriod = {};
+    (c.linescores || []).forEach(ls => {
+      const period = ls.period;
+      const holeLines = ls.linescores || [];
+      const holesPlayed = holeLines.length > 0 ? holeLines.length : (ls.value && ls.value > 0 ? 18 : 0);
+      let roundToPar = 0;
+      if (ls.displayValue !== undefined && ls.displayValue !== null && ls.displayValue !== "") {
+        roundToPar = ls.displayValue === "E" ? 0 : (parseInt(ls.displayValue, 10) || 0);
+      }
+      roundsByPeriod[period] = { holesPlayed, roundToPar };
+    });
+
+    const rounds = [1, 2, 3, 4].map(r => roundsByPeriod[r] || { holesPlayed: 0, roundToPar: 0 });
+
+    return { name, espnPos, cumulativeToPar, rounds, raw: c };
+  });
+
+  return { field, eventName: event.name };
+}
+
+// Two-pass MC / penalty logic: determine furthest round the field has collectively
+// finished (every competitor either at 0 or 18 holes for that round, and at least
+// one competitor at 18), then apply +8-to-par penalty to anyone at 0 holes in a
+// round at or before that point.
+function applyPenaltyLogic(field) {
+  let furthestCompleted = 0;
+  for (let r = 1; r <= 4; r++) {
+    const idx = r - 1;
+    let anyComplete = false;
+    let anyPartial = false;
+    field.forEach(p => {
+      const hp = p.rounds[idx].holesPlayed;
+      if (hp === 18) anyComplete = true;
+      else if (hp > 0 && hp < 18) anyPartial = true;
+    });
+    if (anyComplete && !anyPartial) furthestCompleted = r;
+    else break; // stop at the first round that isn't fully settled for the field
+  }
+
+  return field.map(p => {
+    let poolTotal = 0;
+    const roundDetails = p.rounds.map((rd, i) => {
+      const roundNum = i + 1;
+      if (rd.holesPlayed === 18) {
+        poolTotal += rd.roundToPar;
+        return { ...rd, penalty: false };
+      }
+      if (rd.holesPlayed === 0 && roundNum <= furthestCompleted) {
+        poolTotal += MC_PENALTY_TO_PAR;
+        return { holesPlayed: 0, roundToPar: MC_PENALTY_TO_PAR, penalty: true };
+      }
+      if (rd.holesPlayed > 0 && rd.holesPlayed < 18) {
+        poolTotal += rd.roundToPar;
+        return { ...rd, penalty: false };
+      }
+      return { holesPlayed: 0, roundToPar: 0, penalty: false, notStarted: true };
+    });
+    const hasPenalty = roundDetails.some(r => r.penalty);
+    return { ...p, poolTotal, roundDetails, hasPenalty, furthestCompleted };
+  });
+}
+
+/* ================= JSONBIN ================= */
+async function loadParticipants() {
+  const res = await fetch(JSONBIN_BASE + "/latest", {
+    headers: { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" }
+  });
+  if (!res.ok) throw new Error("JSONBin load failed: " + res.status);
+  const data = await res.json();
+  return Array.isArray(data) ? data : (data.participants || []);
+}
+async function saveParticipants(participants) {
+  const res = await fetch(JSONBIN_BASE, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_API_KEY },
+    body: JSON.stringify(participants)
+  });
+  if (!res.ok) throw new Error("JSONBin save failed: " + res.status);
+  return true;
+}
+
+/* ================= EXCEL PARSING ================= */
+function parseEntrySheet(workbook) {
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const get = (cell) => {
+    const c = sheet[cell];
+    return c ? String(c.v).trim() : "";
+  };
+  let name = get("C4");
+  if (!name) name = get("C5");
+  const picks = [];
+  for (let row = 7; row <= 14; row++) {
+    const v = get("C" + row);
+    if (v) picks.push(v);
+  }
+  const tiebreaker = get("C15");
+  return { name, picks, tiebreaker };
+}
+
+/* ================= MAIN APP ================= */
+function App() {
+  const [tab, setTab] = useState("standings");
+  const [participants, setParticipants] = useState([]);
+  const [field, setField] = useState([]);
+  const [eventName, setEventName] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  const refreshAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [parts, espnRes] = await Promise.all([
+        loadParticipants().catch(() => []),
+        fetch(ESPN_URL).then(r => {
+          if (!r.ok) throw new Error("ESPN API returned " + r.status);
+          return r.json();
+        })
+      ]);
+      const { field: rawField, eventName: ev } = parseEspnField(espnRes);
+      const scoredField = applyPenaltyLogic(rawField);
+      setParticipants(parts);
+      setField(scoredField);
+      setEventName(ev);
+      setLastUpdated(new Date());
+    } catch (e) {
+      setError(e.message || "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refreshAll(); }, [refreshAll]);
+
+  const fieldByKey = {};
+  field.forEach(p => { fieldByKey[lastFirstKey(p.name)] = p; });
+
+  const pickCounts = {};
+  participants.forEach(p => (p.picks || []).forEach(pick => {
+    const k = lastFirstKey(pick);
+    pickCounts[k] = (pickCounts[k] || 0) + 1;
+  }));
+
+  const standings = participants.map(p => {
+    const pickScores = (p.picks || []).map(pickName => {
+      const matched = fieldByKey[lastFirstKey(pickName)];
+      return {
+        name: pickName,
+        score: matched ? matched.poolTotal : null,
+        penalty: matched ? matched.hasPenalty : false,
+        found: !!matched
+      };
+    });
+    const withScores = pickScores.filter(ps => ps.found && ps.score !== null);
+    const sorted = [...withScores].sort((a, b) => a.score - b.score);
+    const kept = sorted.slice(0, NUM_KEEP);
+    const dropped = sorted.slice(NUM_KEEP);
+    const missing = pickScores.filter(ps => !ps.found);
+    const total = kept.reduce((s, k) => s + k.score, 0);
+    return { ...p, pickScores, kept, dropped, missing, total };
+  }).sort((a, b) => a.total - b.total);
+
+  return (
+    <div className="app">
+      <header className="header">
+        <div className="eyebrow">154th Open Championship · Royal Birkdale</div>
+        <h1>The <em>Open</em> Pool</h1>
+        <div className="header-sub">Southport, England &nbsp;·&nbsp; July 16–19, 2026 &nbsp;·&nbsp; Par {PAR}</div>
+        <div className="header-rule"></div>
+        {lastUpdated && (
+          <div className="last-updated">
+            Last synced {lastUpdated.toLocaleTimeString()} {eventName ? "· " + eventName : ""}
+          </div>
+        )}
+      </header>
+
+      <nav className="tabs">
+        <button className={"tab-btn" + (tab === "standings" ? " active" : "")} onClick={() => setTab("standings")}>Pool Standings</button>
+        <button className={"tab-btn" + (tab === "leaderboard" ? " active" : "")} onClick={() => setTab("leaderboard")}>Live Leaderboard</button>
+        <button className={"tab-btn" + (tab === "admin" ? " active" : "")} onClick={() => setTab("admin")}>Admin</button>
+      </nav>
+
+      {error && <div className="status-msg err">{error}</div>}
+
+      {tab === "standings" && (
+        <StandingsTab loading={loading} standings={standings} onRefresh={refreshAll} />
+      )}
+      {tab === "leaderboard" && (
+        <LeaderboardTab loading={loading} field={field} pickCounts={pickCounts} onRefresh={refreshAll} />
+      )}
+      {tab === "admin" && (
+        <AdminTab
+          participants={participants}
+          setParticipants={setParticipants}
+          onRefresh={refreshAll}
+        />
+      )}
+    </div>
+  );
+}
+
+function StandingsTab({ loading, standings, onRefresh }) {
+  return (
+    <div className="card">
+      <div className="admin-row" style={{ justifyContent: "space-between" }}>
+        <div>
+          <h2>Pool Standings</h2>
+          <div className="card-note">Best {NUM_KEEP} of {NUM_PICKS} picks count. Lowest total wins.</div>
+        </div>
+        <button className="btn secondary" onClick={onRefresh}>Refresh</button>
+      </div>
+      {loading ? (
+        <div className="loading-spinner">Loading scores…</div>
+      ) : standings.length === 0 ? (
+        <div className="empty-state">No participants yet — add entries from the Admin tab.</div>
+      ) : (
+        <table>
+          <thead>
+            <tr><th>#</th><th>Participant</th><th style={{ textAlign: "right" }}>Total</th></tr>
+          </thead>
+          <tbody>
+            {standings.map((s, i) => (
+              <tr key={s.name + i}>
+                <td className="rank-cell">{i + 1}</td>
+                <td>
+                  <div className="name-cell">{s.name}</div>
+                  <div className="picks-line">
+                    {s.kept.map((k, idx) => (
+                      <span key={idx}>
+                        {k.name} ({toParDisplay(k.score)}){k.penalty && <span className="penalty-tag">MC</span>}
+                        {idx < s.kept.length - 1 ? ", " : ""}
+                      </span>
+                    ))}
+                    {s.dropped.length > 0 && (
+                      <span className="pick-dropped">
+                        {" · "}{s.dropped.map(d => `${d.name} (${toParDisplay(d.score)})`).join(", ")}
+                      </span>
+                    )}
+                    {s.missing.length > 0 && (
+                      <span style={{ color: "#d18b7a" }}>
+                        {" · unmatched: "}{s.missing.map(m => m.name).join(", ")}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className={"score-cell " + toParClass(s.total)}>{toParDisplay(s.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function LeaderboardTab({ loading, field, pickCounts, onRefresh }) {
+  const sorted = [...field].sort((a, b) => a.poolTotal - b.poolTotal);
+  return (
+    <div className="card">
+      <div className="admin-row" style={{ justifyContent: "space-between" }}>
+        <div>
+          <h2>Live Leaderboard</h2>
+          <div className="card-note">Full field, scored to par with missed-cut/WD penalties applied.</div>
+        </div>
+        <button className="btn secondary" onClick={onRefresh}>Refresh</button>
+      </div>
+      {loading ? (
+        <div className="loading-spinner">Loading leaderboard…</div>
+      ) : sorted.length === 0 ? (
+        <div className="empty-state">No live data available right now.</div>
+      ) : (
+        <table>
+          <thead>
+            <tr><th>Pos</th><th>Player</th><th style={{ textAlign: "right" }}>To Par</th></tr>
+          </thead>
+          <tbody>
+            {sorted.map((p, i) => {
+              const count = pickCounts[lastFirstKey(p.name)] || 0;
+              return (
+                <tr key={p.name + i}>
+                  <td className="rank-cell">{p.espnPos}</td>
+                  <td className="name-cell">
+                    {p.name}
+                    {count > 0 && <span className="pick-count-badge">×{count}</span>}
+                    {p.hasPenalty && <span className="penalty-tag">MC</span>}
+                  </td>
+                  <td className={"score-cell " + toParClass(p.poolTotal)}>{toParDisplay(p.poolTotal)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function AdminTab({ participants, setParticipants, onRefresh }) {
+  const [authed, setAuthed] = useState(false);
+  const [pwInput, setPwInput] = useState("");
+  const [pwError, setPwError] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [status, setStatus] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleLogin = () => {
+    if (pwInput === ADMIN_PASSWORD) { setAuthed(true); setPwError(false); }
+    else setPwError(true);
+  };
+
+  const processFiles = async (files) => {
+    setStatus(null);
+    const added = [];
+    const errors = [];
+    for (const file of files) {
+      try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const { name, picks, tiebreaker } = parseEntrySheet(wb);
+        if (!name || picks.length === 0) {
+          errors.push(file.name + ": couldn't find a name or picks (check C4/C5 and C7–C14)");
+          continue;
+        }
+        added.push({ name, picks, tiebreaker });
+      } catch (e) {
+        errors.push(file.name + ": " + e.message);
+      }
+    }
+    if (added.length > 0) {
+      const updated = [...participants.filter(p => !added.some(a => normalizeName(a.name) === normalizeName(p.name))), ...added];
+      setParticipants(updated);
+      setSaving(true);
+      try {
+        await saveParticipants(updated);
+        setStatus({ type: "ok", text: `Added/updated ${added.length} participant(s) and saved.` + (errors.length ? ` ${errors.length} file(s) failed.` : "") });
+      } catch (e) {
+        setStatus({ type: "err", text: "Saved locally but failed to sync to JSONBin: " + e.message });
+      } finally {
+        setSaving(false);
+      }
+    } else if (errors.length > 0) {
+      setStatus({ type: "err", text: errors.join(" · ") });
+    }
+  };
+
+  const removeParticipant = async (name) => {
+    const updated = participants.filter(p => p.name !== name);
+    setParticipants(updated);
+    setSaving(true);
+    try {
+      await saveParticipants(updated);
+      setStatus({ type: "ok", text: `Removed ${name}.` });
+    } catch (e) {
+      setStatus({ type: "err", text: "Failed to sync removal: " + e.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!authed) {
+    return (
+      <div className="card admin-gate">
+        <h2 style={{ marginBottom: 14 }}>Admin Access</h2>
+        <input
+          type="password"
+          placeholder="Admin password"
+          value={pwInput}
+          onChange={e => setPwInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleLogin()}
+        />
+        {pwError && <div className="status-msg err">Incorrect password.</div>}
+        <button className="btn" style={{ width: "100%" }} onClick={handleLogin}>Enter</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <h2>Admin</h2>
+      <div className="card-note">Drag in participant entry sheets (.xlsx) — name in C4/C5, picks in C7–C14, tiebreaker in C15.</div>
+
+      {status && <div className={"status-msg " + status.type}>{status.text}</div>}
+
+      <div
+        className={"dropzone" + (dragging ? " drag" : "")}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => {
+          e.preventDefault();
+          setDragging(false);
+          processFiles(Array.from(e.dataTransfer.files));
+        }}
+        onClick={() => fileInputRef.current && fileInputRef.current.click()}
+      >
+        <strong>Drop entry sheets here</strong> or click to browse (.xlsx, multiple files ok)
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          multiple
+          style={{ display: "none" }}
+          onChange={e => processFiles(Array.from(e.target.files))}
+        />
+      </div>
+
+      <div className="admin-row">
+        <button className="btn secondary" onClick={onRefresh}>Refresh Live Scores</button>
+        {saving && <span className="card-note">Saving…</span>}
+      </div>
+
+      <h2 style={{ marginTop: 10 }}>Participants ({participants.length})</h2>
+      {participants.length === 0 ? (
+        <div className="empty-state">No participants yet.</div>
+      ) : (
+        <table>
+          <thead><tr><th>Name</th><th>Picks</th><th>Tiebreaker</th><th></th></tr></thead>
+          <tbody>
+            {participants.map((p, i) => (
+              <tr key={p.name + i}>
+                <td className="name-cell">{p.name}</td>
+                <td style={{ fontSize: 12.5, color: "var(--parchment-dim)" }}>{(p.picks || []).join(", ")}</td>
+                <td>{p.tiebreaker || "-"}</td>
+                <td><button className="small-x" onClick={() => removeParticipant(p.name)}>✕</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
