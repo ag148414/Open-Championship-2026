@@ -426,16 +426,19 @@ function App() {
         name: pickName,
         score: matched ? matched.poolTotal : null,
         penalty: matched ? matched.hasPenalty : false,
-        found: !!matched
+        found: !!matched,
+        matched: matched || null
       };
     });
     const withScores = pickScores.filter(ps => ps.found && ps.score !== null);
     const sorted = [...withScores].sort((a, b) => a.score - b.score);
     const kept = sorted.slice(0, NUM_KEEP);
     const dropped = sorted.slice(NUM_KEEP);
+    const droppedSet = new Set(dropped);
     const missing = pickScores.filter(ps => !ps.found);
     const total = kept.reduce((s, k) => s + k.score, 0);
-    return { ...p, pickScores, kept, dropped, missing, total };
+    const orderedPicks = pickScores.map(ps => ({ ...ps, isDropped: droppedSet.has(ps) }));
+    return { ...p, pickScores, orderedPicks, kept, dropped, missing, total };
   }).sort((a, b) => a.total - b.total);
 
   return (
